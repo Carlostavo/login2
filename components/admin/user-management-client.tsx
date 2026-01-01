@@ -3,9 +3,10 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Plus, Trash2, Mail, UserCircle, Shield } from "lucide-react"
+import { Plus, Trash2, Mail, UserCircle, Shield, Edit, MailCheck } from "lucide-react"
 import { CreateUserModal } from "./create-user-modal"
-import { deleteUser } from "@/lib/auth/actions"
+import { EditUserModal } from "./edit-user-modal"
+import { deleteUser, sendPasswordResetEmail } from "@/lib/auth/actions"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 interface User {
   id: string
@@ -33,9 +35,11 @@ interface UserManagementClientProps {
 
 export function UserManagementClient({ users }: UserManagementClientProps) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const router = useRouter()
+  const { toast } = useToast()
 
   const handleDelete = async () => {
     if (!selectedUser) return
@@ -43,9 +47,36 @@ export function UserManagementClient({ users }: UserManagementClientProps) {
     const result = await deleteUser(selectedUser.id)
 
     if (result.success) {
+      toast({
+        title: "Usuario eliminado",
+        description: result.message,
+      })
       setDeleteDialogOpen(false)
       setSelectedUser(null)
       router.refresh()
+    } else {
+      toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSendPasswordReset = async (email: string) => {
+    const result = await sendPasswordResetEmail(email)
+
+    if (result.success) {
+      toast({
+        title: "Correo enviado",
+        description: result.message,
+      })
+    } else {
+      toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive",
+      })
     }
   }
 
@@ -64,7 +95,7 @@ export function UserManagementClient({ users }: UserManagementClientProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {users.map((user) => (
-          <Card key={user.id} className="p-6 hover:shadow-lg transition-shadow">
+          <Card key={user.id} className="p-6 transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -90,7 +121,7 @@ export function UserManagementClient({ users }: UserManagementClientProps) {
               </Button>
             </div>
 
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm mb-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Mail className="h-4 w-4" />
                 <span className="truncate">{user.email}</span>
@@ -99,11 +130,36 @@ export function UserManagementClient({ users }: UserManagementClientProps) {
                 Creado: {new Date(user.created_at).toLocaleDateString("es-ES")}
               </div>
             </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 bg-transparent"
+                onClick={() => {
+                  setSelectedUser(user)
+                  setEditModalOpen(true)
+                }}
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 bg-transparent"
+                onClick={() => handleSendPasswordReset(user.email)}
+              >
+                <MailCheck className="h-3 w-3 mr-1" />
+                Enviar Correo
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
 
       <CreateUserModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
+      <EditUserModal open={editModalOpen} onOpenChange={setEditModalOpen} user={selectedUser} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

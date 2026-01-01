@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { getUser } from "@/lib/auth/actions"
+import { Toaster } from "@/components/ui/toaster"
 
 const geist = Geist({ subsets: ["latin"] })
 const geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -38,6 +39,7 @@ export default async function RootLayout({
     <html lang="es">
       <body className={`${geist.className} antialiased bg-background text-foreground`}>
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>
